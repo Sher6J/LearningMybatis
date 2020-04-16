@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--<!DOCTYPE mapper-->
+<!--        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"-->
+<!--        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">-->
+<!--mapper的约束，自定义mybatis不再需要-->
+<mapper namespace="cn.sher6j.dao.UserDao">
+    <!--配置查询所有-->
+    <select id="findAll" resultType="cn.sher6j.domain.User">
+        select * from user
+    </select>
+</mapper>

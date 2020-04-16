@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.sher6j.dao.UserDao">
+    <!--定义User的resultMap-->
+    <resultMap id="userAccountMap" type="user">
+        <id property="id" column="id"></id>
+        <result property="username" column="username"></result>
+        <result property="address" column="address"></result>
+        <result property="sex" column="sex"></result>
+        <result property="birthday" column="birthday"></result>
+        <!--配置user对象中accounts集合的映射 ofType是集合中元素类型-->
+        <collection property="accounts" ofType="account">
+            <id property="id" column="aid"></id>
+            <result property="uid" column="uid"></result>
+            <result property="money" column="money"></result>
+        </collection>
+    </resultMap>
+
+    <resultMap id="userRoleMap" type="user">
+        <id property="id" column="id"></id>
+        <result property="username" column="username"></result>
+        <result property="address" column="address"></result>
+        <result property="sex" column="sex"></result>
+        <result property="birthday" column="birthday"></result>
+        <!--配置角色集合的映射-->
+        <collection property="roles" ofType="role">
+            <id property="roleId" column="rid"></id>
+            <result property="roleName" column="role_name"></result>
+            <result property="roleDesc" column="role_desc"></result>
+        </collection>
+    </resultMap>
+
+    <!--如果类的属性名和数据库表的列名不一致，解决方法：
+    1. 在SQL语句上操作，起别名
+    2. 利用mybatis配置resultMap  当使用resultMap时，下面语句的resultType就没用了-->
+    <!--id随便起名，可以标识即可,type是全限定类名-->
+    <resultMap id="userMap" type="cn.sher6j.domain.User">
+        <!--主键字段的对应 property对应类，column对应列名-->
+        <id property="id" column="id"></id>
+        <!--非主键字段的对应-->
+        <result property="username" column="username"></result>
+        <result property="address" column="address"></result>
+        <result property="sex" column="sex"></result>
+        <result property="birthday" column="birthday"></result>
+    </resultMap>
+
+    <!--了解的内容，抽取重复的SQL语句-->
+    <sql id="defaultUser">
+        select * from user
+    </sql>
+
+    <!--查询所有账户，同时获取账户的所有角色-->
+    <select id="findAndAllRoles" resultMap="userRoleMap">
+        SELECT u.*, r.id AS rid,r.role_name,r.role_desc FROM USER u
+        LEFT OUTER JOIN user_role ur ON u.id = ur.uid
+        LEFT OUTER JOIN role r ON r.id = ur.rid
+    </select>
+    <select id="findUserAndAllAccount" resultMap="userAccountMap">
+        SELECT * FROM USER u LEFT OUTER JOIN account a ON u.id=a.uid
+    </select>
+    <!--查询所有-->
+    <select id="findAll" resultType="cn.sher6j.domain.User">
+    <!--<select id="findAll" resultMap="userMap">-->
+        <include refid="defaultUser"></include>
+    </select>
+    <!--保存用户-->
+    <insert id="saveUser" parameterType="cn.sher6j.domain.User">
+        <!--配置插入操作后，获取插入数据的ID-->
+        <!--keyProperty对应实体类，keyColumn对应表-->
+        <selectKey keyProperty="id" keyColumn="id" resultType="int" order="AFTER">
+            select last_insert_id()
+        </selectKey>
+        insert into user(username, address, sex, birthday)
+        values(#{username}, #{address}, #{sex}, #{birthday});
+    </insert>
+    <!--更新用户-->
+    <update id="updateUser" parameterType="cn.sher6j.domain.User">
+        update user set
+        username=#{username}, address=#{address}, sex=#{sex}, birthday=#{birthday}
+        where id=#{id}
+    </update>
+    <!--删除用户 parameterType里写Integer,int,java.lang.Integer等等都可以，都支持-->
+    <delete id="deleteUser" parameterType="Integer">
+        delete from user where id = #{uid}
+        <!--当dao中方法只有一个！Integer参数时，写站位符啥都行，不用写相同了-->
+    </delete>
+    <!--根据ID查询-->
+    <select id="findById" parameterType="Integer" resultType="cn.sher6j.domain.User">
+        select * from user where id = #{id}
+    </select>
+    <!--根据名称模糊查询-->
+    <select id="findByName" parameterType="String" resultType="cn.sher6j.domain.User">
+        select * from user where username like #{name}
+    </select>
+    <!--查询总用户数-->
+    <select id="findTotal" resultType="Integer">
+        select count(id) from user
+    </select>
+    <!--根据QueryVo的条件查询用户-->
+    <select id="findUserByVo" parameterType="cn.sher6j.domain.QueryVo" resultType="cn.sher6j.domain.User">
+        select * from user where username like #{user.username}<!--user是QueryVoid的属性，查询需要调user的属性username-->
+    </select>
+    <!--根据User条件查询  动态SQL-->
+    <select id="findByCondition" resultMap="userMap" parameterType="cn.sher6j.domain.User">
+        select * from user
+        <where>
+            <if test="username!=null">
+                and username = #{username}
+            </if>
+            <if test="sex!=null">
+                and sex = #{sex}
+            </if>
+        </where>
+    </select>
+    <!--根据QueryVo中的ID集合查询-->
+    <select id="findUserInIds" resultMap="userMap" parameterType="cn.sher6j.domain.QueryVo">
+        <include refid="defaultUser"></include>
+        <where>
+            <if test="ids != null and ids.size() > 0">
+                <foreach collection="ids" open="and id in (" close=")" item="uid" separator=",">
+                    #{uid}<!--#{}里写什么由item决定-->
+                </foreach>
+            </if>
+        </where>
+    </select>
+</mapper>
